@@ -26,12 +26,10 @@ class ResponseGitHub {
         try {
             let page = 1
             const response = await fetch(
-                `https://api.github.com/repos/${this.nameAuthor}/${this.nameRepo}/commits`,
+                `https://api.github.com/repos/${this.nameAuthor}/${this.nameRepo}/commits?per_page=${PER_PAGE}&page=${page}`,
                 {   
                     method: 'GET',
-                    headers: this.headers,
-                    per_page: PER_PAGE,
-                    page: page
+                    headers: this.headers
                 })
 
             const allCommits = await response.json();
@@ -44,19 +42,22 @@ class ResponseGitHub {
 
             const link = response.headers.get('link');
             var parsed = parse(link)
+            if (!parsed) {
+                return result;
+            }
+
             const lastPage = parsed.last.page
 
             page += 1
             for (page; page <= lastPage; page++) {
                 const response = await fetch(
-                    `https://api.github.com/repos/${this.nameAuthor}/${this.nameRepo}/commits`,
+                    `https://api.github.com/repos/${this.nameAuthor}/${this.nameRepo}/commits?per_page=${PER_PAGE}&page=${page}`,
                     {   
                         method: 'GET',
-                        headers: this.headers,
-                        per_page: PER_PAGE,
-                        page: page
+                        headers: this.headers
                     })
                 const allCommits = await response.json();
+                // append commits to result
 
                 result.commits = result.commits.concat(allCommits.map(commit => ({
                     author: commit.commit.author.name,
@@ -91,6 +92,8 @@ class ResponseGitHub {
             }
         });
 
+        console.log(users)
+
         let maxUser = '';
         let maxCommits = 0;
         for (const user in users) {
@@ -105,7 +108,7 @@ class ResponseGitHub {
 
 
 async function main() {
-    const response = new ResponseGitHub('swift-integration-tests', 'swiftlang', process.env.GITHUB_TOKEN);
+    const response = new ResponseGitHub('swift-stress-tester', 'swiftlang', process.env.GITHUB_TOKEN);
     const allcommits = await response.getAllCommits();
     const uniqueUsers = await response.getUniqueUsers();
     const mostUserCommits = await response.getMostUserCommits();
