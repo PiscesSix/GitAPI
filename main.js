@@ -2,6 +2,7 @@ dotenv = require('dotenv').config();
 var parse = require('parse-link-header');
 const PER_PAGE = 100
 
+
 class ResponseGitHub {
     constructor(nameRepo=null, nameOwner=null, token=null) {
         this.nameRepo = nameRepo;
