@@ -31,16 +31,21 @@ class ResponseGitHub {
 }
 
 class CommitGithub extends ResponseGitHub {
+    async getReponse(per_page, page) {
+        const response = await fetch(
+            this.getCommitUrl(per_page, page),
+            {   
+                method: 'GET',
+                headers: this.headers
+            })
+        return response
+    }
+
     async getAllCommits() {
         try {
             let page = 1
-            const response = await fetch(
-                this.getCommitUrl(PER_PAGE, page),
-                {   
-                    method: 'GET',
-                    headers: this.headers
-                })
-
+            
+            const response = await this.getReponse(PER_PAGE, page)
             const allCommits = await response.json();
             const result = {
                 commits: allCommits.map(commit => ({
@@ -49,22 +54,14 @@ class CommitGithub extends ResponseGitHub {
                 }))
             };
 
-            const link = response.headers.get('link');
-            var parsed = parse(link)
-            if (!parsed) {
+            const lastPage = parse(response.headers.get('link')).last.page
+            if (!lastPage) {
                 return result;
             }
 
-            const lastPage = parsed.last.page
-
             page += 1
             for (page; page <= lastPage; page++) {
-                const response = await fetch(
-                    this.getCommitUrl(PER_PAGE, page),
-                    {
-                        method: 'GET',
-                        headers: this.headers
-                    })
+                const response = await this.getReponse(PER_PAGE, page)
                 const allCommits = await response.json();
 
                 result.commits = result.commits.concat(allCommits.map(commit => ({
@@ -84,9 +81,10 @@ class CommitGithub extends ResponseGitHub {
         const uniqueUsers = [];
         allCommits.commits.forEach(commit => {
             if (!uniqueUsers.includes(commit.author)) {
-            uniqueUsers.push(commit.author);
+                uniqueUsers.push(commit.author);
             }
         });
+
         return uniqueUsers;
     }
 
@@ -106,8 +104,8 @@ class CommitGithub extends ResponseGitHub {
 
         for (const user in users) {
             if (users[user] > maxCommits) {
-            maxUser = user;
-            maxCommits = users[user];
+                maxUser = user;
+                maxCommits = users[user];
             }
         }
 
