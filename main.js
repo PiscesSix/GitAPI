@@ -1,7 +1,6 @@
 dotenv = require('dotenv').config();
 var parse = require('parse-link-header');
 const PER_PAGE = 100
-const COMMIT_URL = `https://api.github.com/repos/${this.nameAuthor}/${this.getNameRepo}/commits`
 
 class ResponseGitHub {
     constructor(nameRepo=null, nameOwner=null, token=null) {
@@ -22,11 +21,21 @@ class ResponseGitHub {
         return this.nameOwner;
     }
 
+    getHeaders() {
+        return this.headers
+    }
+
+    getCommitUrl(per_page, page) {
+        return `https://api.github.com/repos/${this.nameAuthor}/${this.nameRepo}/commits?per_page=${per_page}&page=${page}`
+    }
+}
+
+class CommitGithub extends ResponseGitHub {
     async getAllCommits() {
         try {
             let page = 1
             const response = await fetch(
-                `https://api.github.com/repos/${this.nameAuthor}/${this.nameRepo}/commits?per_page=${PER_PAGE}&page=${page}`,
+                this.getCommitUrl(PER_PAGE, page),
                 {   
                     method: 'GET',
                     headers: this.headers
@@ -51,19 +60,19 @@ class ResponseGitHub {
             page += 1
             for (page; page <= lastPage; page++) {
                 const response = await fetch(
-                    `https://api.github.com/repos/${this.nameAuthor}/${this.nameRepo}/commits?per_page=${PER_PAGE}&page=${page}`,
-                    {   
+                    this.getCommitUrl(PER_PAGE, page),
+                    {
                         method: 'GET',
                         headers: this.headers
                     })
                 const allCommits = await response.json();
-                // append commits to result
 
                 result.commits = result.commits.concat(allCommits.map(commit => ({
                     author: commit.commit.author.name,
                     message: commit.commit.message
                 })))
             }
+
             return result;
         } catch (error) {
             console.log(error);
@@ -84,6 +93,9 @@ class ResponseGitHub {
     async getMostUserCommits() {
         const allCommits = await this.getAllCommits();
         const users = {};
+        let maxUser = '';
+        let maxCommits = 0;
+
         allCommits.commits.forEach(commit => {
             if (users[commit.author]) {
                 users[commit.author] += 1;
@@ -92,23 +104,19 @@ class ResponseGitHub {
             }
         });
 
-        console.log(users)
-
-        let maxUser = '';
-        let maxCommits = 0;
         for (const user in users) {
             if (users[user] > maxCommits) {
             maxUser = user;
             maxCommits = users[user];
             }
         }
+
         return maxUser;
     }
 }
 
-
 async function main() {
-    const response = new ResponseGitHub('swift-stress-tester', 'swiftlang', process.env.GITHUB_TOKEN);
+    const response = new CommitGithub('swift-stress-tester', 'swiftlang', process.env.GITHUB_TOKEN);
     const allcommits = await response.getAllCommits();
     const uniqueUsers = await response.getUniqueUsers();
     const mostUserCommits = await response.getMostUserCommits();
