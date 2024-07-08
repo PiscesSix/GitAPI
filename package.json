@@ -1,8 +1,0 @@
-{
-  "dependencies": {
-    "body-parser": "^1.20.2",
-    "dotenv": "^16.4.5",
-    "parse-link-header": "^2.0.0",
-    "request": "^2.88.2"
-  }
-}
